@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
 
   <meta charset="UTF-8">
@@ -63,6 +64,7 @@
 
 </head>
 
+
 <body>
 
 <div class="container">
@@ -73,12 +75,14 @@
     Tekan tombol untuk membuka kamera
   </div>
 
+
   <button
     id="btnKamera"
     onclick="mulaiScanner()"
   >
     📷 BUKA KAMERA
   </button>
+
 
   <div id="reader"></div>
 
@@ -89,27 +93,31 @@
 
 <script>
 
-/* =========================
+/* =================================
    GOOGLE APPS SCRIPT
-========================= */
+================================= */
 
 const API_URL =
   "https://script.google.com/a/macros/admin.sd.belajar.id/s/AKfycby8EJnWuVNiHaraBqTjwfBkGmhikNSArEbArp8balvhDkN3xWGXgBOh_XVBkJjaQOTP/exec";
 
 
-/* =========================
+/* =================================
    VARIABEL
-========================= */
+================================= */
 
 let scanner = null;
+
 let sedangMemproses = false;
+
 let kameraAktif = false;
+
 let audioContext = null;
 
 
-/* =========================
+/* =================================
    AKTIFKAN AUDIO
-========================= */
+   Dipanggil saat tombol ditekan
+================================= */
 
 async function aktifkanAudio() {
 
@@ -119,6 +127,7 @@ async function aktifkanAudio() {
       window.AudioContext ||
       window.webkitAudioContext;
 
+
     if (!audioContext) {
 
       audioContext =
@@ -126,77 +135,20 @@ async function aktifkanAudio() {
 
     }
 
-    if (audioContext.state === "suspended") {
+
+    if (
+      audioContext.state === "suspended"
+    ) {
 
       await audioContext.resume();
 
     }
 
+
     /*
-      Bunyi sangat singkat untuk
-      membuka izin audio browser
+      Bunyi kecil untuk memastikan
+      audio browser aktif
     */
-
-    const oscillator =
-      audioContext.createOscillator();
-
-    const gain =
-      audioContext.createGain();
-
-    oscillator.connect(gain);
-
-    gain.connect(
-      audioContext.destination
-    );
-
-    gain.gain.setValueAtTime(
-      0.001,
-      audioContext.currentTime
-    );
-
-    oscillator.start();
-
-    oscillator.stop(
-      audioContext.currentTime + 0.02
-    );
-
-    console.log("Audio aktif");
-
-  }
-
-  catch (error) {
-
-    console.log(
-      "Audio error:",
-      error
-    );
-
-  }
-
-}
-
-
-/* =========================
-   SUARA BEEP
-========================= */
-
-function beep(frequency, duration) {
-
-  if (!audioContext) {
-
-    console.log("Audio belum aktif");
-
-    return;
-
-  }
-
-  try {
-
-    if (audioContext.state === "suspended") {
-
-      audioContext.resume();
-
-    }
 
     const oscillator =
       audioContext.createOscillator();
@@ -213,14 +165,95 @@ function beep(frequency, duration) {
 
 
     oscillator.frequency.value =
-      frequency;
+      440;
+
+
+    gain.gain.setValueAtTime(
+      0.01,
+      audioContext.currentTime
+    );
+
+
+    oscillator.start();
+
+    oscillator.stop(
+      audioContext.currentTime + 0.05
+    );
+
+
+    console.log(
+      "Audio berhasil diaktifkan"
+    );
+
+  }
+
+  catch (error) {
+
+    console.log(
+      "Audio error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =================================
+   FUNGSI BEEP
+================================= */
+
+function beep(
+  frequency,
+  duration,
+  volume = 0.5
+) {
+
+  if (!audioContext) {
+
+    return;
+
+  }
+
+
+  try {
+
+    if (
+      audioContext.state === "suspended"
+    ) {
+
+      audioContext.resume();
+
+    }
+
+
+    const oscillator =
+      audioContext.createOscillator();
+
+
+    const gain =
+      audioContext.createGain();
+
+
+    oscillator.connect(gain);
+
+    gain.connect(
+      audioContext.destination
+    );
+
 
     oscillator.type =
       "sine";
 
 
+    oscillator.frequency.setValueAtTime(
+      frequency,
+      audioContext.currentTime
+    );
+
+
     gain.gain.setValueAtTime(
-      0.4,
+      volume,
       audioContext.currentTime
     );
 
@@ -232,7 +265,9 @@ function beep(frequency, duration) {
     );
 
 
-    oscillator.start();
+    oscillator.start(
+      audioContext.currentTime
+    );
 
 
     oscillator.stop(
@@ -254,141 +289,218 @@ function beep(frequency, duration) {
 }
 
 
-/* =========================
-   SUARA BERHASIL
-========================= */
+/* =================================
+   SUARA QR TERBACA
+================================= */
+
+function suaraQR() {
+
+  beep(
+    700,
+    0.12,
+    0.6
+  );
+
+}
+
+
+/* =================================
+   SUARA ABSENSI BERHASIL
+================================= */
 
 function suaraBerhasil() {
 
+  /*
+    Nada 1
+  */
+
   beep(
-    800,
-    0.15
+    700,
+    0.15,
+    0.7
   );
+
+
+  /*
+    Nada 2
+  */
+
+  setTimeout(function() {
+
+    beep(
+      900,
+      0.15,
+      0.7
+    );
+
+  }, 180);
+
+
+  /*
+    Nada 3
+  */
 
   setTimeout(function() {
 
     beep(
       1200,
-      0.3
+      0.35,
+      0.8
     );
 
-  }, 180);
+  }, 360);
 
 }
 
 
-/* =========================
+/* =================================
    SUARA GAGAL
-========================= */
+================================= */
 
 function suaraGagal() {
 
   beep(
-    300,
-    0.4
+    250,
+    0.5,
+    0.7
   );
 
 }
 
 
-/* =========================
+/* =================================
    BERSIHKAN SCANNER
-========================= */
+================================= */
 
 function bersihkanScanner() {
 
-  return new Promise(function(resolve) {
+  return new Promise(
+    function(resolve) {
 
-    if (!scanner) {
+      if (!scanner) {
 
-      document.getElementById(
-        "reader"
-      ).innerHTML = "";
-
-      kameraAktif = false;
-
-      resolve();
-
-      return;
-
-    }
-
-
-    const selesai =
-      function() {
-
-        try {
-
-          scanner.clear()
-            .catch(function() {})
-            .finally(function() {
-
-              document.getElementById(
-                "reader"
-              ).innerHTML = "";
-
-              scanner = null;
-
-              kameraAktif = false;
-
-              resolve();
-
-            });
-
-        }
-
-        catch (e) {
-
-          document.getElementById(
+        document
+          .getElementById(
             "reader"
-          ).innerHTML = "";
-
-          scanner = null;
-
-          kameraAktif = false;
-
-          resolve();
-
-        }
-
-      };
+          )
+          .innerHTML = "";
 
 
-    if (kameraAktif) {
+        kameraAktif =
+          false;
 
-      scanner.stop()
 
-        .then(selesai)
+        resolve();
 
-        .catch(selesai);
+        return;
+
+      }
+
+
+      const selesai =
+        function() {
+
+          try {
+
+            scanner.clear()
+
+              .catch(
+                function() {}
+              )
+
+              .finally(
+                function() {
+
+                  document
+                    .getElementById(
+                      "reader"
+                    )
+                    .innerHTML = "";
+
+
+                  scanner =
+                    null;
+
+
+                  kameraAktif =
+                    false;
+
+
+                  resolve();
+
+                }
+              );
+
+          }
+
+          catch (error) {
+
+            document
+              .getElementById(
+                "reader"
+              )
+              .innerHTML = "";
+
+
+            scanner =
+              null;
+
+
+            kameraAktif =
+              false;
+
+
+            resolve();
+
+          }
+
+        };
+
+
+      if (kameraAktif) {
+
+        scanner.stop()
+
+          .then(selesai)
+
+          .catch(selesai);
+
+      }
+
+      else {
+
+        selesai();
+
+      }
 
     }
-
-    else {
-
-      selesai();
-
-    }
-
-  });
+  );
 
 }
 
 
-/* =========================
+/* =================================
    MULAI SCANNER
-========================= */
+================================= */
 
 async function mulaiScanner() {
 
   const status =
-    document.getElementById("status");
+    document.getElementById(
+      "status"
+    );
+
 
   const hasil =
-    document.getElementById("hasil");
+    document.getElementById(
+      "hasil"
+    );
+
 
   const tombol =
-    document.getElementById("btnKamera");
+    document.getElementById(
+      "btnKamera"
+    );
 
 
   if (kameraAktif) {
@@ -398,14 +510,21 @@ async function mulaiScanner() {
   }
 
 
-  /* Aktifkan audio saat tombol ditekan */
+  /*
+    Audio hanya perlu diaktifkan
+    ketika pengguna menekan tombol
+  */
 
   await aktifkanAudio();
 
 
-  sedangMemproses = false;
+  sedangMemproses =
+    false;
 
-  hasil.innerHTML = "";
+
+  hasil.innerHTML =
+    "";
+
 
   tombol.style.display =
     "none";
@@ -417,124 +536,150 @@ async function mulaiScanner() {
 
   bersihkanScanner()
 
-    .then(function() {
+    .then(
+      function() {
 
-      scanner =
-        new Html5Qrcode("reader");
-
-
-      return Html5Qrcode.getCameras();
-
-    })
-
-    .then(function(cameras) {
-
-      if (
-        !cameras ||
-        cameras.length === 0
-      ) {
-
-        throw new Error(
-          "Kamera tidak ditemukan"
-        );
-
-      }
-
-
-      let cameraId =
-        cameras[0].id;
-
-
-      const kameraBelakang =
-        cameras.find(function(camera) {
-
-          return /back|rear|environment/i.test(
-            camera.label
+        scanner =
+          new Html5Qrcode(
+            "reader"
           );
 
-        });
 
-
-      if (kameraBelakang) {
-
-        cameraId =
-          kameraBelakang.id;
+        return Html5Qrcode
+          .getCameras();
 
       }
+    )
 
 
-      return scanner.start(
+    .then(
+      function(cameras) {
 
-        cameraId,
+        if (
+          !cameras ||
+          cameras.length === 0
+        ) {
 
-        {
-
-          fps: 10,
-
-          qrbox: {
-
-            width: 250,
-
-            height: 250
-
-          }
-
-        },
-
-        qrBerhasil,
-
-        function() {
-
-          /* QR belum terbaca */
+          throw new Error(
+            "Kamera tidak ditemukan"
+          );
 
         }
 
-      );
 
-    })
-
-    .then(function() {
-
-      kameraAktif = true;
+        let cameraId =
+          cameras[0].id;
 
 
-      status.innerHTML =
-        "📷 SIAP SCAN - Arahkan kamera ke QR Code";
+        const kameraBelakang =
+          cameras.find(
+            function(camera) {
 
-    })
+              return /back|rear|environment/i.test(
+                camera.label
+              );
 
-    .catch(function(error) {
-
-      console.error(error);
-
-
-      kameraAktif = false;
-
-      scanner = null;
+            }
+          );
 
 
-      tombol.style.display =
-        "inline-block";
+        if (kameraBelakang) {
+
+          cameraId =
+            kameraBelakang.id;
+
+        }
 
 
-      status.innerHTML =
-        "❌ Kamera tidak dapat dibuka";
+        return scanner.start(
+
+          cameraId,
+
+          {
+
+            fps: 10,
+
+            qrbox: {
+
+              width: 250,
+
+              height: 250
+
+            }
+
+          },
 
 
-      hasil.innerHTML =
-        String(
-          error.message ||
+          qrBerhasil,
+
+
+          function() {
+
+            /*
+              QR belum terbaca
+            */
+
+          }
+
+        );
+
+      }
+    )
+
+
+    .then(
+      function() {
+
+        kameraAktif =
+          true;
+
+
+        status.innerHTML =
+          "📷 SIAP SCAN - Arahkan kamera ke QR Code";
+
+      }
+    )
+
+
+    .catch(
+      function(error) {
+
+        console.error(
           error
         );
 
-    });
+
+        kameraAktif =
+          false;
+
+
+        scanner =
+          null;
+
+
+        tombol.style.display =
+          "inline-block";
+
+
+        status.innerHTML =
+          "❌ Kamera tidak dapat dibuka";
+
+
+        hasil.innerHTML =
+          String(
+            error.message ||
+            error
+          );
+
+      }
+    );
 
 }
 
 
-/* =========================
+/* =================================
    QR BERHASIL DIBACA
-========================= */
+================================= */
 
 function qrBerhasil(decodedText) {
 
@@ -545,43 +690,54 @@ function qrBerhasil(decodedText) {
   }
 
 
-  sedangMemproses = true;
+  sedangMemproses =
+    true;
 
 
-  /* Bunyi saat QR terbaca */
+  /*
+    BUNYI QR TERBACA
+  */
 
-  beep(
-    700,
-    0.12
-  );
+  suaraQR();
 
 
-  document.getElementById("status")
+  document
+    .getElementById(
+      "status"
+    )
     .innerHTML =
       "⏳ QR terbaca, memproses absensi...";
 
 
+  /*
+    Matikan kamera sementara
+  */
+
   bersihkanScanner()
 
-    .then(function() {
+    .then(
+      function() {
 
-      kirimAbsensi(
-        decodedText.trim()
-      );
+        kirimAbsensi(
+          decodedText.trim()
+        );
 
-    });
+      }
+    );
 
 }
 
 
-/* =========================
+/* =================================
    KIRIM ABSENSI
-========================= */
+================================= */
 
 function kirimAbsensi(nis) {
 
   const hasil =
-    document.getElementById("hasil");
+    document.getElementById(
+      "hasil"
+    );
 
 
   hasil.innerHTML =
@@ -593,8 +749,13 @@ function kirimAbsensi(nis) {
     Date.now();
 
 
-  let selesai = false;
+  let selesai =
+    false;
 
+
+  /*
+    CALLBACK JSONP
+  */
 
   window[callbackName] =
     function(data) {
@@ -606,17 +767,27 @@ function kirimAbsensi(nis) {
       }
 
 
-      selesai = true;
+      selesai =
+        true;
 
+
+      /*
+        ABSENSI BERHASIL
+      */
 
       if (data.berhasil) {
 
-        /* SUARA BERHASIL */
+        /*
+          BUNYI BERHASIL
+        */
 
         suaraBerhasil();
 
 
-        document.getElementById("status")
+        document
+          .getElementById(
+            "status"
+          )
           .innerHTML =
             "✅ ABSENSI BERHASIL";
 
@@ -639,14 +810,20 @@ function kirimAbsensi(nis) {
 
       }
 
-      else {
 
-        /* SUARA GAGAL */
+      /*
+        ABSENSI GAGAL
+      */
+
+      else {
 
         suaraGagal();
 
 
-        document.getElementById("status")
+        document
+          .getElementById(
+            "status"
+          )
           .innerHTML =
             "❌ ABSENSI GAGAL";
 
@@ -665,18 +842,33 @@ function kirimAbsensi(nis) {
       hapusScript();
 
 
-      setTimeout(function() {
+      /*
+        KEMBALI KE SCANNER
+      */
 
-        hasil.innerHTML = "";
+      setTimeout(
+        function() {
 
-        sedangMemproses = false;
+          hasil.innerHTML =
+            "";
 
-        mulaiScanner();
 
-      }, 3000);
+          sedangMemproses =
+            false;
+
+
+          mulaiScanner();
+
+        },
+        3000
+      );
 
     };
 
+
+  /*
+    HAPUS SCRIPT JSONP
+  */
 
   function hapusScript() {
 
@@ -695,13 +887,17 @@ function kirimAbsensi(nis) {
 
     try {
 
-      delete window[callbackName];
+      delete window[
+        callbackName
+      ];
 
     }
 
     catch (e) {
 
-      window[callbackName] =
+      window[
+        callbackName
+      ] =
         null;
 
     }
@@ -709,13 +905,23 @@ function kirimAbsensi(nis) {
   }
 
 
+  /*
+    BUAT SCRIPT JSONP
+  */
+
   const script =
-    document.createElement("script");
+    document.createElement(
+      "script"
+    );
 
 
   script.id =
     callbackName;
 
+
+  /*
+    JIKA SERVER ERROR
+  */
 
   script.onerror =
     function() {
@@ -727,18 +933,23 @@ function kirimAbsensi(nis) {
       }
 
 
-      selesai = true;
+      selesai =
+        true;
 
 
       suaraGagal();
 
 
-      document.getElementById("status")
+      document
+        .getElementById(
+          "status"
+        )
         .innerHTML =
           "❌ Gagal menghubungi server";
 
 
       hasil.innerHTML =
+
         "<p>Periksa koneksi server.</p>" +
 
         "<p>📷 Mencoba membuka kamera lagi...</p>";
@@ -747,18 +958,29 @@ function kirimAbsensi(nis) {
       hapusScript();
 
 
-      setTimeout(function() {
+      setTimeout(
+        function() {
 
-        hasil.innerHTML = "";
+          hasil.innerHTML =
+            "";
 
-        sedangMemproses = false;
 
-        mulaiScanner();
+          sedangMemproses =
+            false;
 
-      }, 3000);
+
+          mulaiScanner();
+
+        },
+        3000
+      );
 
     };
 
+
+  /*
+    URL API
+  */
 
   script.src =
 
@@ -768,18 +990,25 @@ function kirimAbsensi(nis) {
 
     "&nis=" +
 
-    encodeURIComponent(nis) +
+    encodeURIComponent(
+      nis
+    ) +
 
     "&callback=" +
 
-    encodeURIComponent(callbackName);
+    encodeURIComponent(
+      callbackName
+    );
 
 
-  document.body.appendChild(script);
+  document.body.appendChild(
+    script
+  );
 
 }
 
 </script>
 
 </body>
+
 </html>

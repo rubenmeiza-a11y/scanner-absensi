@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
 
@@ -7,7 +8,7 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   >
-  
+
   <title>Scanner Absensi</title>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -76,7 +77,10 @@
     Tekan tombol untuk membuka kamera
   </div>
 
-  <button onclick="mulaiScanner()">
+  <button
+    id="tombolKamera"
+    onclick="mulaiScanner()"
+  >
     📷 BUKA KAMERA
   </button>
 
@@ -89,12 +93,88 @@
 
 <script>
 
+/* =========================
+   URL GOOGLE APPS SCRIPT
+========================= */
+
 const API_URL =
-  "https://script.google.com/a/macros/admin.sd.belajar.id/s/AKfycby8EJnWuVNiHaraBqTjwfBkGmhikNSArEbArp8balvhDkN3xWGXgBOh_XVBkJjaQOTP/exec?action=absensi%26nis%3D12345&utm_source=chatgpt.com";
+  "https://script.google.com/a/macros/admin.sd.belajar.id/s/AKfycby8EJnWuVNiHaraBqTjwfBkGmhikNSArEbArp8balvhDkN3xWGXgBOh_XVBkJjaQOTP/exec";
+
+
+/* =========================
+   VARIABEL
+========================= */
 
 let scanner = null;
+
 let sedangMemproses = false;
 
+let kameraAktif = false;
+
+
+/* =========================
+   SUARA BEEP
+========================= */
+
+function bunyiBeep() {
+
+  try {
+
+    const audioContext =
+      new (
+        window.AudioContext ||
+        window.webkitAudioContext
+      )();
+
+    const oscillator =
+      audioContext.createOscillator();
+
+    const gain =
+      audioContext.createGain();
+
+
+    oscillator.connect(gain);
+
+    gain.connect(
+      audioContext.destination
+    );
+
+
+    oscillator.frequency.value = 1000;
+
+    oscillator.type = "sine";
+
+
+    gain.gain.setValueAtTime(
+      0.3,
+      audioContext.currentTime
+    );
+
+
+    oscillator.start();
+
+
+    oscillator.stop(
+      audioContext.currentTime + 0.2
+    );
+
+  }
+
+  catch (error) {
+
+    console.log(
+      "Suara tidak dapat diputar",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================
+   MULAI SCANNER
+========================= */
 
 function mulaiScanner() {
 
@@ -104,19 +184,22 @@ function mulaiScanner() {
   const hasil =
     document.getElementById("hasil");
 
+  const tombol =
+    document.getElementById("tombolKamera");
+
 
   hasil.innerHTML = "";
 
 
-  if (scanner) {
+  if (kameraAktif) {
 
-    try {
-
-      scanner.clear();
-
-    } catch (e) {}
+    return;
 
   }
+
+
+  tombol.style.display =
+    "none";
 
 
   scanner =
@@ -131,8 +214,10 @@ function mulaiScanner() {
 
     .then(function(cameras) {
 
-      if (!cameras ||
-          cameras.length === 0) {
+      if (
+        !cameras ||
+        cameras.length === 0
+      ) {
 
         throw new Error(
           "Kamera tidak ditemukan"
@@ -168,11 +253,15 @@ function mulaiScanner() {
         cameraId,
 
         {
+
           fps: 10,
 
           qrbox: {
+
             width: 250,
+
             height: 250
+
           }
 
         },
@@ -191,6 +280,9 @@ function mulaiScanner() {
 
     .then(function() {
 
+      kameraAktif = true;
+
+
       status.innerHTML =
         "📷 Arahkan kamera ke QR Code";
 
@@ -199,6 +291,13 @@ function mulaiScanner() {
     .catch(function(error) {
 
       console.error(error);
+
+
+      kameraAktif = false;
+
+
+      tombol.style.display =
+        "inline-block";
 
 
       status.innerHTML =
@@ -214,6 +313,9 @@ function mulaiScanner() {
 }
 
 
+/* =========================
+   QR BERHASIL DIBACA
+========================= */
 
 function qrBerhasil(decodedText) {
 
@@ -227,24 +329,36 @@ function qrBerhasil(decodedText) {
   sedangMemproses = true;
 
 
+  // BUNYI SAAT QR TERBACA
+  bunyiBeep();
+
+
   document.getElementById("status")
     .innerHTML =
       "⏳ QR terbaca, memproses absensi...";
 
 
-  if (scanner) {
+  if (scanner && kameraAktif) {
 
     scanner.stop()
 
       .then(function() {
 
-        kirimAbsensi(decodedText);
+        kameraAktif = false;
+
+        kirimAbsensi(
+          decodedText
+        );
 
       })
 
       .catch(function() {
 
-        kirimAbsensi(decodedText);
+        kameraAktif = false;
+
+        kirimAbsensi(
+          decodedText
+        );
 
       });
 
@@ -252,13 +366,18 @@ function qrBerhasil(decodedText) {
 
   else {
 
-    kirimAbsensi(decodedText);
+    kirimAbsensi(
+      decodedText
+    );
 
   }
 
 }
 
 
+/* =========================
+   KIRIM ABSENSI
+========================= */
 
 function kirimAbsensi(nis) {
 
@@ -278,7 +397,13 @@ function kirimAbsensi(nis) {
   window[callbackName] =
     function(data) {
 
+
       if (data.berhasil) {
+
+
+        // BEEP BERHASIL
+        bunyiBeep();
+
 
         document.getElementById("status")
           .innerHTML =
@@ -299,9 +424,11 @@ function kirimAbsensi(nis) {
 
           "<h2>✅ HADIR</h2>";
 
+
       }
 
       else {
+
 
         document.getElementById("status")
           .innerHTML =
@@ -309,6 +436,7 @@ function kirimAbsensi(nis) {
 
 
         hasil.innerHTML =
+
           "<h3>" +
           data.pesan +
           "</h3>";
@@ -332,9 +460,23 @@ function kirimAbsensi(nis) {
       delete window[callbackName];
 
 
+      /* =========================
+         TUNGGU 3 DETIK
+         LALU BUKA KAMERA LAGI
+      ========================= */
+
       setTimeout(function() {
 
+
         sedangMemproses = false;
+
+
+        document.getElementById("hasil")
+          .innerHTML = "";
+
+
+        mulaiScanner();
+
 
       }, 3000);
 
@@ -352,6 +494,7 @@ function kirimAbsensi(nis) {
   script.onerror =
     function() {
 
+
       document.getElementById("status")
         .innerHTML =
           "❌ Gagal menghubungi server";
@@ -362,6 +505,13 @@ function kirimAbsensi(nis) {
 
 
       sedangMemproses = false;
+
+
+      setTimeout(function() {
+
+        mulaiScanner();
+
+      }, 3000);
 
     };
 
@@ -388,4 +538,5 @@ function kirimAbsensi(nis) {
 </script>
 
 </body>
+
 </html>

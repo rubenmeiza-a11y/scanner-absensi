@@ -1,69 +1,76 @@
-<script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanner Absensi</title>
+</head>
 
-function kirimAbsensi(nis) {
+<body>
 
-  const hasil = document.getElementById('hasil');
+  <div id="hasil"></div>
 
-  hasil.innerHTML = '⏳ Memproses absensi...';
+  <script>
 
-  const callbackName =
-    'callbackAbsensi_' + Date.now();
+    function kirimAbsensi(nis) {
+
+      const hasil = document.getElementById('hasil');
+
+      hasil.innerHTML = '⏳ Memproses absensi...';
+
+      const callbackName = 'callbackAbsensi_' + Date.now();
+
+      window[callbackName] = function(data) {
+
+        if (data.berhasil) {
+
+          hasil.innerHTML =
+            '<h2>🎉 Selamat Datang!</h2>' +
+            '<h3>' + data.nama + '</h3>' +
+            '<p>Kelas: <b>' + data.kelas + '</b></p>' +
+            '<h2>✅ HADIR</h2>';
+
+        } else {
+
+          hasil.innerHTML =
+            '❌ ' + data.pesan;
+        }
+
+        delete window[callbackName];
+
+        const scriptLama =
+          document.getElementById(callbackName);
+
+        if (scriptLama) {
+          scriptLama.remove();
+        }
+      };
 
 
-  window[callbackName] = function(data) {
+      const script =
+        document.createElement('script');
 
-    if (data.berhasil) {
+      script.id = callbackName;
 
-      hasil.innerHTML =
-        '<div class="sukses">' +
-        '🎉 <h2>Selamat Datang!</h2>' +
-        '<h3>' + data.nama + '</h3>' +
-        '<p>Absensi Anda berhasil dicatat.</p>' +
-        '<p>Kelas: <b>' + data.kelas + '</b></p>' +
-        '<h3>✅ HADIR</h3>' +
-        '</div>';
+      script.onerror = function() {
 
-    } else {
+        hasil.innerHTML =
+          '❌ Gagal menghubungi server.';
+      };
 
-      hasil.innerHTML =
-        '❌ ' + data.pesan;
+
+      script.src =
+        'https://script.google.com/macros/s/AKfycbwOWTy4CvzqBCclnewpC7pkrdi04FTXFffX61AoS0wBv2HmubytcLjmUNBb0WIb4D4j/exec' +
+        '?action=absensi' +
+        '&nis=' + encodeURIComponent(nis) +
+        '&callback=' + callbackName;
+
+
+      document.body.appendChild(script);
+
     }
 
+  </script>
 
-    delete window[callbackName];
-
-    const scriptLama =
-      document.getElementById(callbackName);
-
-    if (scriptLama) {
-      scriptLama.remove();
-    }
-
-  };
-
-
-  const script =
-    document.createElement('script');
-
-  script.id = callbackName;
-
-
-  script.onerror = function() {
-
-    hasil.innerHTML =
-      '❌ Gagal menghubungi server.';
-  };
-
-
-  script.src =
-    'https://script.google.com/macros/s/AKfycbwOWTy4CvzqBCclnewpC7pkrdi04FTXFffX61AoS0wBv2HmubytcLjmUNBb0WIb4D4j/exec' +
-    '?action=absensi' +
-    '&nis=' + encodeURIComponent(nis) +
-    '&callback=' + callbackName;
-
-
-  document.body.appendChild(script);
-
-}
-
-</script>
+</body>
+</html>

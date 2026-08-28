@@ -2,68 +2,227 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scanner Absensi</title>
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Absensi Siswa</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      font-family: Arial, sans-serif;
+
+      background: #f2f2f2;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 600px;
+
+      padding: 40px;
+
+      text-align: center;
+
+      background: white;
+
+      border-radius: 20px;
+
+      box-shadow:
+        0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    input {
+      width: 100%;
+
+      padding: 18px;
+
+      font-size: 22px;
+
+      border: 1px solid #ccc;
+
+      border-radius: 12px;
+
+      margin: 20px 0;
+    }
+
+    button {
+      padding: 15px 45px;
+
+      font-size: 20px;
+
+      border: none;
+
+      border-radius: 12px;
+
+      cursor: pointer;
+    }
+
+    #hasil {
+      margin-top: 30px;
+
+      font-size: 20px;
+
+      min-height: 50px;
+    }
+
+  </style>
+
 </head>
 
 <body>
 
-  <div id="hasil"></div>
+  <div class="container">
+
+    <h1>ABSENSI SISWA</h1>
+
+    <p>Masukkan NIS Anda</p>
+
+    <input
+      type="text"
+      id="nis"
+      placeholder="Masukkan NIS"
+    >
+
+    <br>
+
+    <button onclick="mulaiAbsensi()">
+      ABSEN
+    </button>
+
+    <div id="hasil"></div>
+
+  </div>
+
 
   <script>
 
+    function mulaiAbsensi() {
+
+      const nis =
+        document
+          .getElementById('nis')
+          .value
+          .trim();
+
+
+      if (!nis) {
+
+        document
+          .getElementById('hasil')
+          .innerHTML =
+            '❌ Silakan masukkan NIS';
+
+        return;
+      }
+
+
+      kirimAbsensi(nis);
+
+    }
+
+
+
     function kirimAbsensi(nis) {
 
-      const hasil = document.getElementById('hasil');
+      const hasil =
+        document.getElementById('hasil');
 
-      hasil.innerHTML = '⏳ Memproses absensi...';
 
-      const callbackName = 'callbackAbsensi_' + Date.now();
+      hasil.innerHTML =
+        '⏳ Memproses absensi...';
 
-      window[callbackName] = function(data) {
 
-        if (data.berhasil) {
+      const callbackName =
+        'callbackAbsensi_' +
+        Date.now();
 
-          hasil.innerHTML =
-            '<h2>🎉 Selamat Datang!</h2>' +
-            '<h3>' + data.nama + '</h3>' +
-            '<p>Kelas: <b>' + data.kelas + '</b></p>' +
-            '<h2>✅ HADIR</h2>';
 
-        } else {
+      window[callbackName] =
+        function(data) {
 
-          hasil.innerHTML =
-            '❌ ' + data.pesan;
-        }
+          if (data.berhasil) {
 
-        delete window[callbackName];
+            hasil.innerHTML =
+              '<h2>🎉 Selamat Datang!</h2>' +
+              '<h3>' + data.nama + '</h3>' +
+              '<p>Kelas: <b>' +
+              data.kelas +
+              '</b></p>' +
+              '<h2>✅ HADIR</h2>';
 
-        const scriptLama =
-          document.getElementById(callbackName);
+          }
 
-        if (scriptLama) {
-          scriptLama.remove();
-        }
-      };
+          else {
+
+            hasil.innerHTML =
+              '❌ ' +
+              data.pesan;
+
+          }
+
+
+          delete window[callbackName];
+
+
+          const scriptLama =
+            document.getElementById(
+              callbackName
+            );
+
+
+          if (scriptLama) {
+
+            scriptLama.remove();
+
+          }
+
+        };
+
 
 
       const script =
         document.createElement('script');
 
-      script.id = callbackName;
 
-      script.onerror = function() {
+      script.id =
+        callbackName;
 
-        hasil.innerHTML =
-          '❌ Gagal menghubungi server.';
-      };
+
+      script.onerror =
+        function() {
+
+          hasil.innerHTML =
+            '❌ Gagal menghubungi server.';
+
+        };
+
 
 
       script.src =
         'https://script.google.com/macros/s/AKfycbwOWTy4CvzqBCclnewpC7pkrdi04FTXFffX61AoS0wBv2HmubytcLjmUNBb0WIb4D4j/exec' +
         '?action=absensi' +
-        '&nis=' + encodeURIComponent(nis) +
-        '&callback=' + callbackName;
+        '&nis=' +
+        encodeURIComponent(nis) +
+        '&callback=' +
+        callbackName;
 
 
       document.body.appendChild(script);

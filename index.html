@@ -1,235 +1,255 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
 
-  <title>Absensi Siswa</title>
+<title>Scanner Absensi</title>
 
-  <style>
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-    * {
-      box-sizing: border-box;
-    }
+<style>
 
-    body {
-      margin: 0;
-      min-height: 100vh;
+* {
+  box-sizing: border-box;
+}
 
-      display: flex;
-      justify-content: center;
-      align-items: center;
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #121212;
+  color: white;
+  text-align: center;
+}
 
-      font-family: Arial, sans-serif;
+.container {
+  max-width: 600px;
+  margin: auto;
+  padding: 25px 15px;
+}
 
-      background: #f2f2f2;
-    }
+h1 {
+  margin-top: 20px;
+}
 
-    .container {
-      width: 90%;
-      max-width: 600px;
+#reader {
+  width: 100%;
+  margin-top: 25px;
+  border-radius: 15px;
+  overflow: hidden;
+}
 
-      padding: 40px;
+#hasil {
+  margin-top: 25px;
+  padding: 20px;
+  border-radius: 15px;
+  font-size: 20px;
+  min-height: 60px;
+}
 
-      text-align: center;
+.sukses {
+  background: #14532d;
+}
 
-      background: white;
+.gagal {
+  background: #7f1d1d;
+}
 
-      border-radius: 20px;
+.proses {
+  background: #374151;
+}
 
-      box-shadow:
-        0 10px 30px rgba(0,0,0,0.15);
-    }
-
-    h1 {
-      margin-top: 0;
-    }
-
-    input {
-      width: 100%;
-
-      padding: 18px;
-
-      font-size: 22px;
-
-      border: 1px solid #ccc;
-
-      border-radius: 12px;
-
-      margin: 20px 0;
-    }
-
-    button {
-      padding: 15px 45px;
-
-      font-size: 20px;
-
-      border: none;
-
-      border-radius: 12px;
-
-      cursor: pointer;
-    }
-
-    #hasil {
-      margin-top: 30px;
-
-      font-size: 20px;
-
-      min-height: 50px;
-    }
-
-  </style>
-
+</style>
 </head>
 
 <body>
 
-  <div class="container">
+<div class="container">
 
-    <h1>ABSENSI SISWA</h1>
+  <h1>📷 SCANNER ABSENSI</h1>
 
-    <p>Masukkan NIS Anda</p>
+  <p>Arahkan kamera ke QR Code siswa</p>
 
-    <input
-      type="text"
-      id="nis"
-      placeholder="Masukkan NIS"
-    >
+  <div id="reader"></div>
 
-    <br>
-
-    <button onclick="mulaiAbsensi()">
-      ABSEN
-    </button>
-
-    <div id="hasil"></div>
-
+  <div id="hasil">
+    📷 Menunggu QR Code...
   </div>
 
-
-  <script>
-
-    function mulaiAbsensi() {
-
-      const nis =
-        document
-          .getElementById('nis')
-          .value
-          .trim();
+</div>
 
 
-      if (!nis) {
+<script>
 
-        document
-          .getElementById('hasil')
-          .innerHTML =
-            '❌ Silakan masukkan NIS';
+const API_URL =
+'https://script.google.com/macros/s/AKfycbwOWTy4CvzqBCclnewpC7pkrdi04FTXFffX61AoS0wBv2HmubytcLjmUNBb0WIb4D4j/exec';
 
-        return;
+let sedangProses = false;
+
+
+function kirimAbsensi(nis) {
+
+  if (sedangProses) {
+    return;
+  }
+
+  sedangProses = true;
+
+  const hasil =
+    document.getElementById('hasil');
+
+  hasil.className = 'proses';
+
+  hasil.innerHTML =
+    '⏳ Memproses absensi...';
+
+
+  const callbackName =
+    'callbackAbsensi_' + Date.now();
+
+
+  window[callbackName] =
+    function(data) {
+
+      if (data.berhasil) {
+
+        hasil.className = 'sukses';
+
+        hasil.innerHTML =
+          '<h2>🎉 SELAMAT DATANG!</h2>' +
+          '<h3>' + data.nama + '</h3>' +
+          '<p>Kelas: <b>' +
+          data.kelas +
+          '</b></p>' +
+          '<h2>✅ HADIR</h2>';
+
+      } else {
+
+        hasil.className = 'gagal';
+
+        hasil.innerHTML =
+          '❌ ' + data.pesan;
+
       }
 
 
-      kirimAbsensi(nis);
+      delete window[callbackName];
 
-    }
+      const scriptLama =
+        document.getElementById(
+          callbackName
+        );
+
+      if (scriptLama) {
+
+        scriptLama.remove();
+
+      }
 
 
+      setTimeout(function() {
 
-    function kirimAbsensi(nis) {
+        sedangProses = false;
 
-      const hasil =
-        document.getElementById('hasil');
+        hasil.className = '';
 
+        hasil.innerHTML =
+          '📷 Silakan scan QR berikutnya...';
+
+      }, 4000);
+
+    };
+
+
+  const script =
+    document.createElement('script');
+
+
+  script.id =
+    callbackName;
+
+
+  script.onerror =
+    function() {
+
+      hasil.className = 'gagal';
 
       hasil.innerHTML =
-        '⏳ Memproses absensi...';
+        '❌ Gagal menghubungi server.';
 
 
-      const callbackName =
-        'callbackAbsensi_' +
-        Date.now();
+      delete window[callbackName];
 
 
-      window[callbackName] =
-        function(data) {
+      setTimeout(function() {
 
-          if (data.berhasil) {
+        sedangProses = false;
 
-            hasil.innerHTML =
-              '<h2>🎉 Selamat Datang!</h2>' +
-              '<h3>' + data.nama + '</h3>' +
-              '<p>Kelas: <b>' +
-              data.kelas +
-              '</b></p>' +
-              '<h2>✅ HADIR</h2>';
+        hasil.className = '';
 
-          }
+        hasil.innerHTML =
+          '📷 Coba scan kembali...';
 
-          else {
+      }, 3000);
 
-            hasil.innerHTML =
-              '❌ ' +
-              data.pesan;
-
-          }
+    };
 
 
-          delete window[callbackName];
+  script.src =
+    API_URL +
+    '?action=absensi' +
+    '&nis=' +
+    encodeURIComponent(nis) +
+    '&callback=' +
+    callbackName;
 
 
-          const scriptLama =
-            document.getElementById(
-              callbackName
-            );
+  document.body.appendChild(script);
 
-
-          if (scriptLama) {
-
-            scriptLama.remove();
-
-          }
-
-        };
+}
 
 
 
-      const script =
-        document.createElement('script');
+function onScanSuccess(decodedText) {
 
+  kirimAbsensi(decodedText);
 
-      script.id =
-        callbackName;
-
-
-      script.onerror =
-        function() {
-
-          hasil.innerHTML =
-            '❌ Gagal menghubungi server.';
-
-        };
+}
 
 
 
-      script.src =
-        'https://script.google.com/macros/s/AKfycbwOWTy4CvzqBCclnewpC7pkrdi04FTXFffX61AoS0wBv2HmubytcLjmUNBb0WIb4D4j/exec' +
-        '?action=absensi' +
-        '&nis=' +
-        encodeURIComponent(nis) +
-        '&callback=' +
-        callbackName;
+function onScanFailure(error) {
+
+}
 
 
-      document.body.appendChild(script);
 
-    }
+const html5QrCode =
+  new Html5QrcodeScanner(
 
-  </script>
+    'reader',
+
+    {
+      fps: 10,
+      qrbox: {
+        width: 250,
+        height: 250
+      }
+    },
+
+    false
+
+  );
+
+
+html5QrCode.render(
+  onScanSuccess,
+  onScanFailure
+);
+
+</script>
 
 </body>
 </html>

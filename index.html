@@ -1,3 +1,5 @@
+<script>
+
 function kirimAbsensi(nis) {
 
   const hasil = document.getElementById('hasil');
@@ -7,15 +9,19 @@ function kirimAbsensi(nis) {
   const callbackName =
     'callbackAbsensi_' + Date.now();
 
+
   window[callbackName] = function(data) {
 
     if (data.berhasil) {
 
       hasil.innerHTML =
+        '<div class="sukses">' +
         '🎉 <h2>Selamat Datang!</h2>' +
         '<h3>' + data.nama + '</h3>' +
+        '<p>Absensi Anda berhasil dicatat.</p>' +
         '<p>Kelas: <b>' + data.kelas + '</b></p>' +
-        '<h2>✅ HADIR</h2>';
+        '<h3>✅ HADIR</h3>' +
+        '</div>';
 
     } else {
 
@@ -23,14 +29,16 @@ function kirimAbsensi(nis) {
         '❌ ' + data.pesan;
     }
 
+
     delete window[callbackName];
 
-    const script =
+    const scriptLama =
       document.getElementById(callbackName);
 
-    if (script) {
-      script.remove();
+    if (scriptLama) {
+      scriptLama.remove();
     }
+
   };
 
 
@@ -38,6 +46,7 @@ function kirimAbsensi(nis) {
     document.createElement('script');
 
   script.id = callbackName;
+
 
   script.onerror = function() {
 
@@ -54,4 +63,7 @@ function kirimAbsensi(nis) {
 
 
   document.body.appendChild(script);
+
 }
+
+</script>

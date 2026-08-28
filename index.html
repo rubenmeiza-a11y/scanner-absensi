@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -33,10 +33,6 @@
       background: white;
       padding: 25px;
       border-radius: 20px;
-    }
-
-    h1 {
-      margin-top: 0;
     }
 
     button {
@@ -78,7 +74,7 @@
   </div>
 
   <button
-    id="tombolKamera"
+    id="btnKamera"
     onclick="mulaiScanner()"
   >
     📷 BUKA KAMERA
@@ -94,7 +90,7 @@
 <script>
 
 /* =========================
-   URL GOOGLE APPS SCRIPT
+   GOOGLE APPS SCRIPT
 ========================= */
 
 const API_URL =
@@ -111,20 +107,61 @@ let sedangMemproses = false;
 
 let kameraAktif = false;
 
+let audioContext = null;
+
+
+/* =========================
+   AKTIFKAN AUDIO
+   Dipanggil saat tombol kamera
+========================= */
+
+function aktifkanAudio() {
+
+  try {
+
+    const AudioContextClass =
+      window.AudioContext ||
+      window.webkitAudioContext;
+
+    if (!audioContext) {
+
+      audioContext =
+        new AudioContextClass();
+
+    }
+
+    if (audioContext.state === "suspended") {
+
+      audioContext.resume();
+
+    }
+
+  } catch (error) {
+
+    console.log("Audio error:", error);
+
+  }
+
+}
+
 
 /* =========================
    SUARA BEEP
 ========================= */
 
-function bunyiBeep() {
+function beep(frequency, duration) {
+
+  if (!audioContext) {
+    return;
+  }
 
   try {
 
-    const audioContext =
-      new (
-        window.AudioContext ||
-        window.webkitAudioContext
-      )();
+    if (audioContext.state === "suspended") {
+
+      audioContext.resume();
+
+    }
 
     const oscillator =
       audioContext.createOscillator();
@@ -140,9 +177,11 @@ function bunyiBeep() {
     );
 
 
-    oscillator.frequency.value = 1000;
+    oscillator.frequency.value =
+      frequency;
 
-    oscillator.type = "sine";
+    oscillator.type =
+      "sine";
 
 
     gain.gain.setValueAtTime(
@@ -151,23 +190,128 @@ function bunyiBeep() {
     );
 
 
+    gain.gain.exponentialRampToValueAtTime(
+      0.01,
+      audioContext.currentTime +
+      duration
+    );
+
+
     oscillator.start();
 
 
     oscillator.stop(
-      audioContext.currentTime + 0.2
+      audioContext.currentTime +
+      duration
     );
 
   }
 
   catch (error) {
 
-    console.log(
-      "Suara tidak dapat diputar",
-      error
-    );
+    console.log("Beep error:", error);
 
   }
+
+}
+
+
+/* =========================
+   SUARA BERHASIL
+========================= */
+
+function suaraBerhasil() {
+
+  beep(800, 0.15);
+
+  setTimeout(function() {
+
+    beep(1200, 0.25);
+
+  }, 200);
+
+}
+
+
+/* =========================
+   BERSIHKAN SCANNER
+========================= */
+
+function bersihkanScanner() {
+
+  return new Promise(function(resolve) {
+
+    if (!scanner) {
+
+      document.getElementById(
+        "reader"
+      ).innerHTML = "";
+
+      kameraAktif = false;
+
+      resolve();
+
+      return;
+    }
+
+
+    const lanjutBersihkan =
+      function() {
+
+        try {
+
+          scanner.clear()
+            .catch(function() {})
+            .finally(function() {
+
+              document.getElementById(
+                "reader"
+              ).innerHTML = "";
+
+              scanner = null;
+
+              kameraAktif = false;
+
+              resolve();
+
+            });
+
+        }
+
+        catch (e) {
+
+          document.getElementById(
+            "reader"
+          ).innerHTML = "";
+
+          scanner = null;
+
+          kameraAktif = false;
+
+          resolve();
+
+        }
+
+      };
+
+
+    if (kameraAktif) {
+
+      scanner.stop()
+
+        .then(lanjutBersihkan)
+
+        .catch(lanjutBersihkan);
+
+    }
+
+    else {
+
+      lanjutBersihkan();
+
+    }
+
+  });
 
 }
 
@@ -185,10 +329,7 @@ function mulaiScanner() {
     document.getElementById("hasil");
 
   const tombol =
-    document.getElementById("tombolKamera");
-
-
-  hasil.innerHTML = "";
+    document.getElementById("btnKamera");
 
 
   if (kameraAktif) {
@@ -198,19 +339,34 @@ function mulaiScanner() {
   }
 
 
+  aktifkanAudio();
+
+
+  sedangMemproses = false;
+
+
+  hasil.innerHTML = "";
+
+
   tombol.style.display =
     "none";
 
 
-  scanner =
-    new Html5Qrcode("reader");
-
-
   status.innerHTML =
-    "⏳ Membuka kamera...";
+    "⏳ Menyiapkan kamera...";
 
 
-  Html5Qrcode.getCameras()
+  bersihkanScanner()
+
+    .then(function() {
+
+      scanner =
+        new Html5Qrcode("reader");
+
+
+      return Html5Qrcode.getCameras();
+
+    })
 
     .then(function(cameras) {
 
@@ -284,7 +440,7 @@ function mulaiScanner() {
 
 
       status.innerHTML =
-        "📷 Arahkan kamera ke QR Code";
+        "📷 SIAP SCAN - Arahkan kamera ke QR Code";
 
     })
 
@@ -294,6 +450,8 @@ function mulaiScanner() {
 
 
       kameraAktif = false;
+
+      scanner = null;
 
 
       tombol.style.display =
@@ -305,8 +463,10 @@ function mulaiScanner() {
 
 
       hasil.innerHTML =
-        error.message ||
-        String(error);
+        String(
+          error.message ||
+          error
+        );
 
     });
 
@@ -329,8 +489,7 @@ function qrBerhasil(decodedText) {
   sedangMemproses = true;
 
 
-  // BUNYI SAAT QR TERBACA
-  bunyiBeep();
+  beep(700, 0.12);
 
 
   document.getElementById("status")
@@ -338,39 +497,15 @@ function qrBerhasil(decodedText) {
       "⏳ QR terbaca, memproses absensi...";
 
 
-  if (scanner && kameraAktif) {
+  bersihkanScanner()
 
-    scanner.stop()
+    .then(function() {
 
-      .then(function() {
+      kirimAbsensi(
+        decodedText.trim()
+      );
 
-        kameraAktif = false;
-
-        kirimAbsensi(
-          decodedText
-        );
-
-      })
-
-      .catch(function() {
-
-        kameraAktif = false;
-
-        kirimAbsensi(
-          decodedText
-        );
-
-      });
-
-  }
-
-  else {
-
-    kirimAbsensi(
-      decodedText
-    );
-
-  }
+    });
 
 }
 
@@ -394,15 +529,22 @@ function kirimAbsensi(nis) {
     Date.now();
 
 
+  let selesai = false;
+
+
   window[callbackName] =
     function(data) {
+
+      if (selesai) {
+        return;
+      }
+
+      selesai = true;
 
 
       if (data.berhasil) {
 
-
-        // BEEP BERHASIL
-        bunyiBeep();
+        suaraBerhasil();
 
 
         document.getElementById("status")
@@ -422,12 +564,15 @@ function kirimAbsensi(nis) {
           data.kelas +
           "</b></p>" +
 
-          "<h2>✅ HADIR</h2>";
+          "<h2>✅ HADIR</h2>" +
 
+          "<p>📷 Kamera siap kembali dalam 3 detik...</p>";
 
       }
 
       else {
+
+        beep(300, 0.4);
 
 
         document.getElementById("status")
@@ -439,48 +584,58 @@ function kirimAbsensi(nis) {
 
           "<h3>" +
           data.pesan +
-          "</h3>";
+          "</h3>" +
+
+          "<p>📷 Scan berikutnya dalam 3 detik...</p>";
 
       }
 
 
-      const script =
-        document.getElementById(
-          callbackName
-        );
+      hapusScript();
 
-
-      if (script) {
-
-        script.remove();
-
-      }
-
-
-      delete window[callbackName];
-
-
-      /* =========================
-         TUNGGU 3 DETIK
-         LALU BUKA KAMERA LAGI
-      ========================= */
 
       setTimeout(function() {
 
+        hasil.innerHTML = "";
 
         sedangMemproses = false;
 
-
-        document.getElementById("hasil")
-          .innerHTML = "";
-
-
         mulaiScanner();
-
 
       }, 3000);
 
     };
+
+
+  function hapusScript() {
+
+    const script =
+      document.getElementById(
+        callbackName
+      );
+
+
+    if (script) {
+
+      script.remove();
+
+    }
+
+
+    try {
+
+      delete window[callbackName];
+
+    }
+
+    catch (e) {
+
+      window[callbackName] =
+        null;
+
+    }
+
+  }
 
 
   const script =
@@ -494,6 +649,12 @@ function kirimAbsensi(nis) {
   script.onerror =
     function() {
 
+      if (selesai) {
+        return;
+      }
+
+      selesai = true;
+
 
       document.getElementById("status")
         .innerHTML =
@@ -501,13 +662,19 @@ function kirimAbsensi(nis) {
 
 
       hasil.innerHTML =
-        "Periksa link Google Apps Script.";
+        "<p>Periksa koneksi server.</p>" +
+
+        "<p>📷 Mencoba membuka kamera lagi...</p>";
 
 
-      sedangMemproses = false;
+      hapusScript();
 
 
       setTimeout(function() {
+
+        hasil.innerHTML = "";
+
+        sedangMemproses = false;
 
         mulaiScanner();
 
@@ -528,7 +695,7 @@ function kirimAbsensi(nis) {
 
     "&callback=" +
 
-    callbackName;
+    encodeURIComponent(callbackName);
 
 
   document.body.appendChild(script);
@@ -538,5 +705,4 @@ function kirimAbsensi(nis) {
 </script>
 
 </body>
-
 </html>
